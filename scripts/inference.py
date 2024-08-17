@@ -15,12 +15,12 @@ from torch import autocast
 from contextlib import nullcontext
 import torchvision
 from typing import List
-sys.path[0] = "/home/yx/code/virtual_tryon/TPD"
+sys.path[0] = "."
 print(sys.path)
 from ldm.util import instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
-
+from scripts.image_loader import ImageLoader
 from torchvision.transforms import Resize
 
 
@@ -348,7 +348,19 @@ def main():
     if opt.fixed_code:
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
 
+    # Example usage:
+    dataset_dir = "/content/TPD/datasets/VITONHD/test/"
+    single_image_processor = ImageLoader(
+      source_image_path=os.path.join(dataset_dir, "image", "example.jpg"),
+      segment_map_path=os.path.join(dataset_dir, "image-parse-v3", "example.png"),
+      ref_image_path=os.path.join(dataset_dir, "cloth", "example_cloth.jpg"),
+      pose_image_path=os.path.join(dataset_dir, "openpose_img", "example_rendered.png"),
+      densepose_image_path=os.path.join(dataset_dir, "image-densepose", "example.jpg"),
+    )
 
+    loader = single_image_processor.process()
+
+    # Print or inspect the output dictionary
     iterator = tqdm(loader, desc='test Dataset', total=len(loader))
     precision_scope = autocast if opt.precision == "autocast" else nullcontext
 
