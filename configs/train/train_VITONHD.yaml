@@ -1,6 +1,6 @@
 model:
   base_learning_rate: 1.0e-05
-  target: ldm.models.diffusion.ddpm.LatentDiffusion
+  target: models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
     linear_end: 0.0120
@@ -19,7 +19,7 @@ model:
     use_ema: False
 
     scheduler_config: # 10000 warmup steps
-      target: ldm.lr_scheduler.LambdaLinearScheduler
+      target: lr_scheduler.LambdaLinearScheduler
       params:
         warm_up_steps: [ 10000 ]
         cycle_lengths: [ 10000000000000 ] # incredibly large number to prevent corner cases
@@ -28,7 +28,7 @@ model:
         f_min: [ 1. ]
 
     unet_config:
-      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: modules.diffusionmodules.openaimodel.UNetModel
       params:
         image_size: 32 # unused
         in_channels: 18
@@ -46,7 +46,7 @@ model:
         add_conv_in_front_of_unet: False
 
     first_stage_config:
-      target: ldm.models.autoencoder.AutoencoderKL
+      target: models.autoencoder.AutoencoderKL
       params:
         embed_dim: 4
         monitor: val/rec_loss
@@ -74,21 +74,21 @@ data:
       batch_size: 10
       wrap: False
       train:
-          target: ldm.data.dataset_VITONHD.try_on_dataset_VITONHD
+          target: data.dataset_VITONHD.try_on_dataset_VITONHD
           params:
               state: train
               dataset_dir: datasets/VITONHD
               order: paired
               image_size: 224
       validation:
-          target: ldm.data.dataset_VITONHD.try_on_dataset_VITONHD
+          target: data.dataset_VITONHD.try_on_dataset_VITONHD
           params:
               state: validation
               dataset_dir: datasets/VITONHD
               order: unpaired
               image_size: 224
       test:
-          target: ldm.data.dataset_VITONHD.try_on_dataset_VITONHD
+          target: data.dataset_VITONHD.try_on_dataset_VITONHD
           params:
               state: test
               dataset_dir: datasets/VITONHD

@@ -17,9 +17,9 @@ import torchvision
 from typing import List
 sys.path[0] = "."
 print(sys.path)
-from ldm.util import instantiate_from_config
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
+from utils import instantiate_from_config
+from models.diffusion.ddim import DDIMSampler
+from models.diffusion.plms import PLMSSampler
 
 from torchvision.transforms import Resize
 

@@ -290,4 +290,6 @@ dependencies:
     - yarl==1.9.3
     - zipp==3.17.0
     - -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+    - git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
+    - git+https://github.com/facebookresearch/detectron2.git
 prefix: /home/yx/anaconda3/envs/TPD

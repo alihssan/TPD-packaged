@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./src/taming-transformers')
+from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
 import argparse, datetime, os, sys
 import cv2
 import torch

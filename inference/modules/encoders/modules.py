@@ -5,11 +5,11 @@ import clip
 from einops import rearrange, repeat
 from transformers import CLIPTokenizer, CLIPTextModel,CLIPVisionModel,CLIPModel
 import kornia
-from ldm.modules.x_transformer import Encoder, TransformerWrapper  # TODO: can we directly rely on lucidrains code and simply add this as a reuirement? --> test
+from modules.x_transformer import Encoder, TransformerWrapper  # TODO: can we directly rely on lucidrains code and simply add this as a reuirement? --> test
 from .xf import LayerNorm, Transformer
 import math
-from ldm.util import get_obj_from_str
-from ldm.modules.diffusionmodules.util import zero_module
+from utils import get_obj_from_str
+from modules.diffusionmodules.util import zero_module
 
 class AbstractEncoder(nn.Module):
     def __init__(self):
@@ -173,6 +173,6 @@ class FrozenCLIPImageEmbedder(AbstractEncoder):
 
 
 if __name__ == "__main__":
-    from ldm.util import count_params
+    from utils import count_params
     model = FrozenCLIPImageEmbedder()
     count_params(model, verbose=True)
