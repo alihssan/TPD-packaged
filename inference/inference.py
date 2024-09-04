@@ -296,6 +296,18 @@ def main():
         help="predicted_mask_dilation",
     )
 
+    parser.add_argument(
+        "--avatar_img_url",
+        type=str,
+        help="Avatar Image URL",
+    )
+
+    parser.add_argument(
+        "--cloth_img_url",
+        type=str,
+        help="Cloth Image URL",
+    )
+
 
     opt = parser.parse_args()
 
@@ -308,12 +320,9 @@ def main():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
 
-    dataloader = TryOnDataLoader(avatar_image_url="path_to_avatar.jpg", cloth_image_url="path_to_cloth.jpg")
+    dataloader = TryOnDataLoader(avatar_image_url= opt.avatar_img_url, cloth_image_url=opt.cloth_img_url)
     input_data = dataloader.__getitem__(0)
     iterator = tqdm([input_data], desc='test Dataset', total=1)
-
-    # dataset = instantiate_from_config(config.data.params.test)
-    # loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     if opt.plms:
         sampler = PLMSSampler(model)
