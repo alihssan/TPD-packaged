@@ -20,7 +20,7 @@ print(sys.path)
 from utils import instantiate_from_config
 from models.diffusion.ddim import DDIMSampler
 from models.diffusion.plms import PLMSSampler
-
+from TryOn.image_loader import TryOnDataLoader
 from torchvision.transforms import Resize
 
 
@@ -308,8 +308,12 @@ def main():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
 
-    dataset = instantiate_from_config(config.data.params.test)
-    loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    dataloader = TryOnDataLoader(avatar_image_url="path_to_avatar.jpg", cloth_image_url="path_to_cloth.jpg")
+    input_data = dataloader.__getitem__(0)
+    iterator = tqdm([input_data], desc='test Dataset', total=1)
+
+    # dataset = instantiate_from_config(config.data.params.test)
+    # loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     if opt.plms:
         sampler = PLMSSampler(model)
@@ -348,8 +352,6 @@ def main():
     if opt.fixed_code:
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
 
-
-    iterator = tqdm(loader, desc='test Dataset', total=len(loader))
     precision_scope = autocast if opt.precision == "autocast" else nullcontext
 
 

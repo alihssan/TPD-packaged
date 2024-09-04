@@ -11,15 +11,6 @@ from inspect import isfunction
 from PIL import Image, ImageDraw, ImageFont
 import yaml  # Import PyYAML
 
-# Load configuration from a YAML file
-def load_config_from_yaml(file_path):
-    with open(file_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
-
-# Example: Load from a file named 'config.yaml'
-config = load_config_from_yaml('./config.yaml')
-
 
 def log_txt_as_img(wh, xc, size=10):
     # wh a tuple of (width, height)
