@@ -1,0 +1,99 @@
+data:
+  params:
+    batch_size: 10
+    test:
+      params:
+        dataset_dir: datasets/VITONHD
+        image_size: 224
+        order: paired
+        state: test
+      target: data.dataset_VITONHD.try_on_dataset_VITONHD
+    wrap: false
+  target: main.DataModuleFromConfig
+lightning:
+  trainer:
+    accelerator: gpu
+    check_val_every_n_epoch: 10
+    gpus: '0'
+    limit_val_batches: 0.5
+    max_epochs: 80
+    num_nodes: 1
+model:
+  base_learning_rate: 1.0e-05
+  params:
+    channels: 5
+    cond_stage_key: image
+    cond_stage_trainable: true
+    conditioning_key: crossattn
+    first_stage_config:
+      params:
+        ddconfig:
+          attn_resolutions: []
+          ch: 128
+          ch_mult:
+          - 1
+          - 2
+          - 4
+          - 4
+          double_z: true
+          dropout: 0.0
+          in_channels: 3
+          num_res_blocks: 2
+          out_ch: 3
+          resolution: 256
+          z_channels: 4
+        embed_dim: 4
+        lossconfig:
+          target: torch.nn.Identity
+        monitor: val/rec_loss
+      target: models.autoencoder.AutoencoderKL
+    first_stage_key: inpaint
+    image_size: 64
+    linear_end: 0.012
+    linear_start: 0.00085
+    log_every_t: 200
+    monitor: train/loss
+    num_timesteps_cond: 1
+    scale_factor: 0.18215
+    scheduler_config:
+      params:
+        cycle_lengths:
+        - 10000000000000
+        f_max:
+        - 1.0
+        f_min:
+        - 1.0
+        f_start:
+        - 1.0e-06
+        warm_up_steps:
+        - 10000
+      target: lr_scheduler.LambdaLinearScheduler
+    timesteps: 1000
+    u_cond_percent: 0.2
+    unet_config:
+      params:
+        add_conv_in_front_of_unet: false
+        attention_resolutions:
+        - 4
+        - 2
+        - 1
+        channel_mult:
+        - 1
+        - 2
+        - 4
+        - 4
+        context_dim:
+        - 768
+        image_size: 32
+        in_channels: 18
+        legacy: false
+        model_channels: 320
+        num_heads: 8
+        num_res_blocks: 2
+        out_channels: 5
+        transformer_depth: 1
+        use_checkpoint: true
+        use_spatial_transformer: true
+      target: modules.diffusionmodules.openaimodel.UNetModel
+    use_ema: false
+  target: models.diffusion.ddpm.LatentDiffusion
