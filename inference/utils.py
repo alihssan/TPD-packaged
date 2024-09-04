@@ -189,7 +189,7 @@ def parallel_data_prefetch(
     finally:
         for p in processes:
             p.join()
-        print(f"Prefetching complete. [{time.time() - start} sec.]}")
+        print(f"Prefetching complete. [{time.time() - start} sec.]")
 
     if target_data_type == 'ndarray':
         if not isinstance(gather_res[0], np.ndarray):

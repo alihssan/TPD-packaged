@@ -43,8 +43,8 @@ import matplotlib.pyplot as plt
 import cv2
 import PIL.Image
 import os
-
 from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
+from pre_process.viton_hd import VitonHD
 
 label_to_index = {
     "background": 0,
@@ -88,65 +88,51 @@ def get_tensor(normalize=True, toTensor=True):
 
 
 class try_on_dataset_VITONHD(data.Dataset):
-    def __init__(self, state, order: str = 'paired', pairs_file: str = None, **args):
-        self.state = state
+    def __init__(self, avatar_image_url, cloth_image_url, **args):
+        """
+        Initialize the dataset with the avatar and cloth image URLs, and use VitonHD to process them.
+        Args:
+        - avatar_image_url: URL to the avatar image.
+        - cloth_image_url: URL to the clothing image.
+        - viton_hd_processor: VitonHD class instance for image processing.
+        """
+        self.avatar_image_url = avatar_image_url
+        self.cloth_image_url = cloth_image_url
+        self.viton_hd_processor = VitonHD()
         self.args = args
-        self.kernel = np.ones((1, 1), np.uint8)
-        self.kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        self.boundingbox_as_inpainting_mask_rate = 0.4
 
-        self.order = order
-        self.pairs_file = pairs_file
+        # Process images using VitonHD
+        processed_results = self.viton_hd_processor.process_all(avatar_image_url, cloth_image_url, labels_to_remove=[4, 11, 14, 15])
 
-        self.source_dir = []
-        self.segment_map_dir = []
-        self.ref_dir = []
-        self.pose_dir = []
-        self.densepose_dir = []
+        # Extract the parsed and masked images
+        self.avatar_image_parsed = processed_results['image_parse_v3']
+        self.avatar_image_agnostic = processed_results['agnostic_image_parse']
+        self.cloth_mask = processed_results['cloth_mask']
+        self.keypoints_img = processed_results['keypoints_img']
+        self.dense_pose = processed_results['dense_pose']
 
-        dataroot = os.path.join(args["dataset_dir"], self.state)
-
-        if self.order == 'paired':
-            filename = os.path.join(args["dataset_dir"], f"VITONHD_{self.state}_paired.txt")
-        else:
-            filename = os.path.join(args["dataset_dir"], f"VITONHD_{self.state}_unpaired.txt")
+        # Simulate directory behavior with these processed images
+        self.source_img = self.avatar_image_parsed  # Parsed avatar image
+        self.ref_img = self.cloth_mask              # Masked cloth image
         
-        if pairs_file:
-            filename = pairs_file
-
-        with open(filename) as f:
-          pairs = f.readlines()
-          print(pairs)  # For debugging: print the pairs read from the file
-          for pair in pairs:
-              # Skip empty lines or lines that don't contain two items
-              if not pair.strip() or len(pair.strip().split()) != 2:
-                  print(f"Skipping invalid line: {pair.strip()}")  # For debugging
-                  continue
-
-              im_name, c_name = pair.strip().split()
-              self.source_dir.append(os.path.join(dataroot, "image", im_name))
-              self.ref_dir.append(os.path.join(dataroot, "cloth", c_name))
-              self.pose_dir.append(os.path.join(dataroot, "openpose_img", im_name.replace('.jpg', '_rendered.png')))
-              self.densepose_dir.append(os.path.join(dataroot, "image-densepose", im_name))
+        # Set a dummy length for the dataset
+        self.length = 1
 
 
-        self.length = len(self.source_dir)
 
     def __getitem__(self, index):
-        source_path = self.source_dir[index]
-        ref_path = self.ref_dir[index]
-        pose_path = self.pose_dir[index]
-        densepose_path = self.densepose_dir[index]
-
-        source_img = Image.open(source_path).convert("RGB")
-        source_img = source_img.resize((384, 512), Image.BILINEAR)
+        # Instead of loading images from paths, we will use the preprocessed avatar and cloth images.
+        source_img = Image.fromarray(self.avatar_image_parsed).convert("RGB")
+        ref_img = Image.fromarray(self.cloth_mask).convert("RGB")
+        densepose_img = Image.fromarray(self.dense_pose).convert("RGB")
+        
+        # Process the source image (avatar) using Segformer
         image_tensor = get_tensor()(source_img)
 
-        # Load the Segformer model and processor
-        processor = SegformerImageProcessor.from_pretrained("mattmdjaga/segformer_b2_clothes")
-        model = AutoModelForSemanticSegmentation.from_pretrained("mattmdjaga/segformer_b2_clothes")
+        # If you still want to perform semantic segmentation on the source image using Segformer, use the already initialized model from VitonHD
+        processor = self.viton_hd_processor.processor
+        model = self.viton_hd_processor.model
 
-        # Process the source image using Segformer
         inputs = processor(images=source_img, return_tensors="pt")
         outputs = model(**inputs)
         logits = outputs.logits.cpu()
@@ -166,9 +152,9 @@ class try_on_dataset_VITONHD(data.Dataset):
         # Create the garment mask using the new parse_array
         garment_mask = (parse_array == 4).astype(np.float32) + (parse_array == 7).astype(np.float32)
         garment_mask_with_arms = (parse_array == 4).astype(np.float32) + \
-                                 (parse_array == 7).astype(np.float32) + \
-                                 (parse_array == 14).astype(np.float32) + \
-                                 (parse_array == 15).astype(np.float32)
+                                (parse_array == 7).astype(np.float32) + \
+                                (parse_array == 14).astype(np.float32) + \
+                                (parse_array == 15).astype(np.float32)
 
         epsilon_randomness = random.uniform(0.001, 0.005)
         randomness_range = random.choice([80, 90, 100])
@@ -223,7 +209,7 @@ class try_on_dataset_VITONHD(data.Dataset):
             garment_mask_with_arms_resized = cv2.cvtColor(garment_mask_with_arms_resized, cv2.COLOR_RGB2GRAY)
 
         garment_mask_with_arms_boundingbox = cv2.erode(garment_mask_with_arms_resized, self.kernel_dilate, iterations=5)[None]
-        # Debugging: Check shape and handle it accordingly
+        
         if garment_mask_with_arms_boundingbox.ndim == 3:
             _, y, x = np.where(garment_mask_with_arms_boundingbox == 0)
         elif garment_mask_with_arms_boundingbox.ndim == 2:
@@ -231,7 +217,6 @@ class try_on_dataset_VITONHD(data.Dataset):
         else:
             raise ValueError("Unexpected shape for garment_mask_with_arms_boundingbox:", garment_mask_with_arms_boundingbox.shape)
 
-        # Bounding box
         if x.size > 0 and y.size > 0:
             x_min, x_max = np.min(x), np.max(x)
             y_min, y_max = np.min(y), np.max(y)
@@ -259,21 +244,9 @@ class try_on_dataset_VITONHD(data.Dataset):
         else:
             inpainting_mask_tensor = boundingbox_tensor
 
-        ref_img_combine = Image.open(ref_path).convert("RGB")
-        ref_img_combine = ref_img_combine.resize((384, 512), Image.BILINEAR)
-        ref_img_combine_tensor = get_tensor()(ref_img_combine)
-
-        pose_img = Image.open(pose_path).convert("RGB")
-        pose_img = pose_img.resize((384, 512), Image.BILINEAR)
-        poseimage_tensor = get_tensor()(pose_img)
-
-        densepose_img = Image.open(densepose_path).convert("RGB")
-        densepose_img = densepose_img.resize((384, 512), Image.BILINEAR)
-        denseposeimage_tensor = get_tensor()(densepose_img)
-
-        inpaint_image = image_tensor * inpainting_mask_tensor
-
-        ref_tensors = [ref_img_combine_tensor]
+        # Combine tensors for final output
+        ref_img_combine_tensor = get_tensor()(ref_img)
+        poseimage_tensor = get_tensor()(self.keypoints_img)
 
         # 768 * 512 GT_image
         GT_image_combined = torch.cat((image_tensor, ref_img_combine_tensor), dim=2)
@@ -282,7 +255,7 @@ class try_on_dataset_VITONHD(data.Dataset):
         GT_mask_combined = torch.cat((garment_mask_GT_tensor, torch.ones((1, 512, 384), dtype=torch.float32)), dim=2)
 
         # 768 * 512 inpaint_image
-        inpaint_image_combined = torch.cat((inpaint_image, ref_img_combine_tensor), dim=2)
+        inpaint_image_combined = torch.cat((image_tensor * inpainting_mask_tensor, ref_img_combine_tensor), dim=2)
 
         # 768 * 512 inpainting mask
         inpainting_mask_combined = torch.cat((inpainting_mask_tensor, torch.ones((1, 512, 384), dtype=torch.float32)), dim=2)
@@ -291,10 +264,10 @@ class try_on_dataset_VITONHD(data.Dataset):
         pose_combined = torch.cat((poseimage_tensor, ref_img_combine_tensor), dim=2)
 
         # 768 * 512 densepose
-        densepose_combined = torch.cat((denseposeimage_tensor, ref_img_combine_tensor), dim=2)
+        densepose_combined = torch.cat((get_tensor()(densepose_img), ref_img_combine_tensor), dim=2)
 
-        # Image name
-        image_name = os.path.split(source_path)[-1]
+        # Image name (You can generate or assign a unique name)
+        image_name = f"avatar_{index}.jpg"
 
         return {
             "image_name": image_name,
@@ -304,8 +277,5 @@ class try_on_dataset_VITONHD(data.Dataset):
             "inpaint_mask": inpainting_mask_combined,
             "posemap": pose_combined,
             "densepose": densepose_combined,
-            "ref_list": ref_tensors,
+            "ref_list": [ref_img_combine_tensor],
         }
-
-    def __len__(self):
-        return self.length
