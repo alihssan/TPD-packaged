@@ -6,10 +6,10 @@ import cv2
 import matplotlib.pyplot as plt
 import mediapipe as mp
 from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
-from dense_pose_pred import Predictor  # Replace with the correct import for DensePose
+from pre_process.dense_pose_pred import Predictor  # Replace with the correct import for DensePose
 from io import BytesIO
-from image_parse import ImageParser
-from agnostic_mask import AgnosticMasking
+from pre_process.image_parse import ImageParser
+from pre_process.agnostic_mask import AgnosticMasking
 
 class VitonHD:
     def __init__(self, segformer_model_name="mattmdjaga/segformer_b2_clothes"):
