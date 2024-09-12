@@ -557,7 +557,7 @@ def main():
                                                             x_T=start_code,
                                                             test_model_kwargs=test_model_kwargs)
 
-                        result_image_second_stage = model.decode_first_stage(z_result_second_stage[:,:4,:,:])
+                        result_image_second_stage = model.decodes_first_stage(z_result_second_stage[:,:4,:,:])
                         result_image_second_stage = torch.clamp((result_image_second_stage + 1.0) / 2.0, min=0.0, max=1.0)
                         result_image_second_stage = result_image_second_stage.cpu()
 

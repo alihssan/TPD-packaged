@@ -28,7 +28,6 @@ import copy
 import math
 from functools import partial
 import albumentations as A
-import bezier
 from numpy import asarray
 
 import random

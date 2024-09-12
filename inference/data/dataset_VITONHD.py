@@ -96,6 +96,9 @@ class TryOnDataLoader:
         - cloth_image_url: URL to the clothing image.
         - viton_hd_processor: VitonHD class instance for image processing.
         """
+        self.kernel = np.ones((1, 1), np.uint8)
+        self.kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        self.boundingbox_as_inpainting_mask_rate = 0.4
         self.avatar_image_url = avatar_image_url
         self.cloth_image_url = cloth_image_url
         self.viton_hd_processor = VitonHD()
